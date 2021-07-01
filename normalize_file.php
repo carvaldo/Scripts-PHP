@@ -39,13 +39,20 @@ $fFilesOld = fopen("_log" . DIRECTORY_SEPARATOR . "old_arquivos.txt", 'w');
 $fFilesNew = fopen("_log" . DIRECTORY_SEPARATOR . "new_arquivos.txt", 'w');
 $fRevert = fopen("_log" . DIRECTORY_SEPARATOR . "revert.log", 'w');
 
+if (!$files || !$fLog || !$fFilesOld || !$fFilesNew || !$fRevert) {
+     die("Não foi possível criar arquivos de log.");
+}
+
 foreach ($files as $file) {
     fwrite($fFilesOld, $file . PHP_EOL);
     $str = preg_replace('/[\"\*\:\<\>\?\'\|\r\n\t  %*,]/', '_', $file);
     $str = htmlentities($str, ENT_QUOTES, "utf-8");
     $str = preg_replace("/(&)([a-z])([a-z]+;)/i", '$2', $str);
     $newNames[] = $str;
-    fwrite($fFilesNew, $str . PHP_EOL);
+    $result = fwrite($fFilesNew, $str . PHP_EOL);
+    if (!$result) {
+        die("Falha ao registrar log.");
+    }
 }
 
 foreach ($newNames as $position => $name) {
@@ -55,7 +62,10 @@ foreach ($newNames as $position => $name) {
     $queryArquivoRevert = "UPDATE documento SET arquivo = '$oldName' WHERE arquivo LIKE '$name';" . PHP_EOL;
     $queryArquivoAssinado = "UPDATE documento SET arquivoAssinado = '$name' WHERE arquivoAssinado LIKE '$oldName';" . PHP_EOL;
     $queryArquivoAssinadoRevert = "UPDATE documento SET arquivoAssinado = '$oldName' WHERE arquivoAssinado LIKE '$name';" . PHP_EOL;
-    rename($oldName, $name);
+    $result = rename($oldName, $name);
+    if (!$result) {
+        die("Falha ao renomear o arquivo.");
+    }
     fwrite($fLog, time() . ": $queryArquivo");
     fwrite($fLog, time() . ": $queryArquivoAssinado");
     fwrite($fRevert, $queryArquivo);
